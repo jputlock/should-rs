@@ -1,52 +1,39 @@
-use crate::{
-    assertions::assert,
-    context::{AssertionContext, AssertionContextBuilder},
-    message_generator::ErrorMessageGenerator,
-};
+use crate::{assertions::assert_comparison, context::AssertionContextBuilder, message_generator};
 
 use std::fmt::Debug;
 
 pub trait ShouldBeEqExtension: Eq + Debug {
+    /// Assert that this object is equivalent to the given 'expected'.
+    fn should_be_eq(&self, expected: &Self);
+
+    /// Assert that this object is not equivalent to the given 'expected'.
+    fn should_not_be_eq(&self, expected: &Self);
+}
+
+impl<T> ShouldBeEqExtension for T
+where
+    T: Eq + Debug,
+{
     fn should_be_eq(&self, expected: &Self) {
-        assert(
-            |x| x == expected,
+        assert_comparison(
             self,
+            |x| x == expected,
+            &self,
             expected,
             AssertionContextBuilder::new(),
-            EqErrorMessageGenerator::generate_message,
+            message_generator::generate_message,
         );
     }
 
     fn should_not_be_eq(&self, expected: &Self) {
-        assert(
-            |x| x != expected,
+        assert_comparison(
             self,
+            |x| x != expected,
+            &self,
             expected,
-            AssertionContextBuilder::new().is_negated(true),
-            EqErrorMessageGenerator::generate_message,
+            AssertionContextBuilder::new().actual_mapper(Box::new(|_| "".to_string())),
+            message_generator::generate_message,
         );
-    }
-}
-
-impl<T> ShouldBeEqExtension for T where T: Eq + Debug {}
-
-pub(crate) struct EqErrorMessageGenerator {}
-impl ErrorMessageGenerator for EqErrorMessageGenerator {
-    fn generate_message<T: ?Sized + Debug, O: ?Sized + Debug>(
-        actual: &T,
-        expected: &O,
-        context: &AssertionContext,
-    ) -> String {
-        let value = if context.is_negated {
-            "".to_string()
-        } else {
-            format!(" {:?}", actual)
-        };
-
-        format!(
-            "{} {} {expected:?} but was{value}",
-            context.asserted_expression, context.verb
-        )
     }
 }
 
