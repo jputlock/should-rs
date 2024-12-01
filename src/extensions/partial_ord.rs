@@ -20,7 +20,7 @@ where
             self,
             expected,
             AssertionContextBuilder::new().verb("should be less than"),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 
@@ -31,7 +31,7 @@ where
             &self,
             expected,
             AssertionContextBuilder::new().verb("should be less than or equal to"),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 
@@ -42,7 +42,7 @@ where
             &self,
             expected,
             AssertionContextBuilder::new().verb("should be greater than"),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 
@@ -53,7 +53,7 @@ where
             &self,
             expected,
             AssertionContextBuilder::new().verb("should be greater than or equal to"),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 }

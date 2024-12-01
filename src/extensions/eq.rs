@@ -21,7 +21,7 @@ where
             &self,
             expected,
             AssertionContextBuilder::new(),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 
@@ -32,7 +32,7 @@ where
             &self,
             expected,
             AssertionContextBuilder::new().actual_mapper(Box::new(|_| "".to_string())),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 }

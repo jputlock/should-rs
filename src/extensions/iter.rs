@@ -34,12 +34,20 @@ pub trait ShouldBeIntoIterExtension: IntoIterator<Item: Eq + Debug> + Clone + De
     /// Assert that the generated sequence has at least one element which
     /// satisfies the given 'matcher'. In other words, the given 'matcher' must
     /// return 'true' for at least one element in the generated sequence.
-    fn should_any_satisfy(self, matcher: impl FnMut(Self::Item) -> bool);
+    fn should_any_satisfy(
+        self,
+        matcher: impl FnMut(Self::Item) -> bool,
+        custom_message: Option<String>,
+    );
 
     /// Assert that all elements in the generated sequence satisfy the given
     /// 'matcher'. In other words, the given 'matcher' must return 'true' for
     /// all elements in the generated sequence.
-    fn should_all_satisfy(self, matcher: impl FnMut(Self::Item) -> bool);
+    fn should_all_satisfy(
+        self,
+        matcher: impl FnMut(Self::Item) -> bool,
+        custom_message: Option<String>,
+    );
 }
 
 impl<T> ShouldBeIntoIterExtension for T
@@ -64,9 +72,8 @@ where
             self,
             |mut iter| iter.next().is_none(),
             cloned,
-            "empty",
-            AssertionContextBuilder::new(),
-            message_generator::generate_message,
+            AssertionContextBuilder::new().verb("should be empty"),
+            message_generator::failed_condition_message,
         );
     }
 
@@ -77,9 +84,8 @@ where
             self,
             |mut iter| iter.next().is_some(),
             cloned,
-            "empty",
-            AssertionContextBuilder::new().verb("should not be"),
-            message_generator::generate_message,
+            AssertionContextBuilder::new().verb("should not be empty"),
+            message_generator::failed_condition_message,
         );
     }
 
@@ -96,15 +102,16 @@ where
                 count == size
             },
             cloned,
-            format!("size {size}").as_str(),
-            AssertionContextBuilder::new().actual_mapper(Box::new(|iter: T| {
-                let mut count: usize = 0;
-                for _ in iter.clone() {
-                    count += 1;
-                }
-                format!(" size {count}: {iter:?}")
-            })),
-            message_generator::generate_message,
+            AssertionContextBuilder::new()
+                .verb(format!("should be size {size}").as_str())
+                .actual_mapper(Box::new(|iter: T| {
+                    let mut count: usize = 0;
+                    for _ in iter.clone() {
+                        count += 1;
+                    }
+                    format!(" size {count}: {iter:?}")
+                })),
+            message_generator::failed_condition_message,
         );
     }
 
@@ -117,7 +124,7 @@ where
             cloned,
             item,
             AssertionContextBuilder::new().verb("should contain"),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 
@@ -130,33 +137,43 @@ where
             cloned,
             item,
             AssertionContextBuilder::new().verb("should not contain"),
-            message_generator::generate_message,
+            message_generator::expected_vs_actual_message,
         );
     }
 
-    fn should_any_satisfy(self, predicate: impl FnMut(Self::Item) -> bool) {
+    fn should_any_satisfy(
+        self,
+        predicate: impl FnMut(Self::Item) -> bool,
+        custom_message: Option<String>,
+    ) {
         let cloned = self.clone();
 
         assert_unary(
             self,
             |mut iter: Self| iter.any(predicate),
             cloned,
-            "at least one element which satsified the predicate",
-            AssertionContextBuilder::new().verb("should have"),
-            message_generator::generate_message,
+            AssertionContextBuilder::new()
+                .verb("should satisfy the predicate for at least one element")
+                .custom_message(custom_message),
+            message_generator::failed_condition_message,
         );
     }
 
-    fn should_all_satisfy(self, predicate: impl FnMut(Self::Item) -> bool) {
+    fn should_all_satisfy(
+        self,
+        predicate: impl FnMut(Self::Item) -> bool,
+        custom_message: Option<String>,
+    ) {
         let cloned = self.clone();
 
         assert_unary(
             self,
             |mut iter: Self| iter.all(predicate),
             cloned,
-            "all elements which satisfy the predicate",
-            AssertionContextBuilder::new().verb("should have"),
-            message_generator::generate_message,
+            AssertionContextBuilder::new()
+                .verb("should satisfy the predicate for all elements")
+                .custom_message(custom_message),
+            message_generator::failed_condition_message,
         );
     }
 }
@@ -210,17 +227,25 @@ mod tests {
 
     #[test]
     fn test_should_any_satisfy() {
-        (0..3).should_any_satisfy(|x| x == 0);
+        (0..3).should_any_satisfy(|x| x == 0, None);
 
-        let result = std::panic::catch_unwind(|| (0..3).should_any_satisfy(|x| x == 10));
+        let result = std::panic::catch_unwind(|| (0..3).should_any_satisfy(|x| x == 10, None));
+        assert!(result.is_err());
+
+        let result = std::panic::catch_unwind(|| {
+            (0..3).should_any_satisfy(
+                |x| x == 10,
+                Some("Expected at least one element to be 10".to_string()),
+            )
+        });
         assert!(result.is_err());
     }
 
     #[test]
     fn test_should_all_satisfy() {
-        (0..3).should_all_satisfy(|x| x < 5);
+        (0..3).should_all_satisfy(|x| x < 5, None);
 
-        let result = std::panic::catch_unwind(|| (0..3).should_all_satisfy(|x| x < 1));
+        let result = std::panic::catch_unwind(|| (0..3).should_all_satisfy(|x| x < 1, None));
         assert!(result.is_err());
     }
 }
