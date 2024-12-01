@@ -4,17 +4,17 @@ use std::fmt::Debug;
 
 pub trait ShouldBeEqExtension: Eq + Debug {
     /// Assert that this object is equivalent to the given 'expected'.
-    fn should_be_eq(&self, expected: &Self);
+    fn should_be(&self, expected: &Self);
 
     /// Assert that this object is not equivalent to the given 'expected'.
-    fn should_not_be_eq(&self, expected: &Self);
+    fn should_not_be(&self, expected: &Self);
 }
 
 impl<T> ShouldBeEqExtension for T
 where
     T: Eq + Debug,
 {
-    fn should_be_eq(&self, expected: &Self) {
+    fn should_be(&self, expected: &Self) {
         assert_comparison(
             self,
             |x| x == expected,
@@ -25,7 +25,7 @@ where
         );
     }
 
-    fn should_not_be_eq(&self, expected: &Self) {
+    fn should_not_be(&self, expected: &Self) {
         assert_comparison(
             self,
             |x| x != expected,
@@ -57,29 +57,32 @@ mod tests {
     }
 
     #[test]
-    fn should_be_basic() {
+    fn should_be() {
+        // Success case
         let original = Object::new("object1", 1111);
         let cloned_original = original.clone();
 
-        original.should_be_eq(&cloned_original);
-        cloned_original.should_be_eq(&original);
+        original.should_be(&cloned_original);
+        cloned_original.should_be(&original);
+
+        // Fail case
+        let unique = Object::new("object2", 2222);
+
+        let result = std::panic::catch_unwind(|| original.should_be(&unique));
+        assert!(result.is_err());
     }
 
     #[test]
-    fn should_not_be_basic() {
+    fn should_not_be() {
+        // Success case
         let original = Object::new("object1", 1111);
         let unique = Object::new("object2", 2222);
 
-        original.should_not_be_eq(&unique);
-        unique.should_not_be_eq(&original);
-    }
+        original.should_not_be(&unique);
+        unique.should_not_be(&original);
 
-    #[test]
-    fn failure() {
-        let original = Object::new("object1", 1111);
-        let unique = Object::new("object2", 2222);
-
-        let result = std::panic::catch_unwind(|| original.should_be_eq(&unique));
+        // Fail case
+        let result = std::panic::catch_unwind(|| original.should_not_be(&original));
         assert!(result.is_err());
     }
 }
