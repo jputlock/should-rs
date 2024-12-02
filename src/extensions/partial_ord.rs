@@ -4,9 +4,9 @@ use std::fmt::Debug;
 
 pub trait ShouldBePartialOrdExtension: PartialOrd + Debug {
     fn should_be_lt(&self, expected: &Self);
-    fn should_be_leq(&self, expected: &Self);
+    fn should_be_le(&self, expected: &Self);
     fn should_be_gt(&self, expected: &Self);
-    fn should_be_geq(&self, expected: &Self);
+    fn should_be_ge(&self, expected: &Self);
 }
 
 impl<T> ShouldBePartialOrdExtension for T
@@ -24,7 +24,7 @@ where
         );
     }
 
-    fn should_be_leq(&self, expected: &Self) {
+    fn should_be_le(&self, expected: &Self) {
         assert_comparison(
             self,
             |x| x <= expected,
@@ -46,7 +46,7 @@ where
         );
     }
 
-    fn should_be_geq(&self, expected: &Self) {
+    fn should_be_ge(&self, expected: &Self) {
         assert_comparison(
             self,
             |x| x >= expected,
@@ -70,8 +70,8 @@ mod tests {
                     first.should_be_lt(&second);
                     second.should_be_gt(&first);
                 } else {
-                    first.should_be_geq(&second);
-                    second.should_be_leq(&first);
+                    first.should_be_ge(&second);
+                    second.should_be_le(&first);
                 }
             }
         }
@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn failure() {
-        let result = std::panic::catch_unwind(|| 1f32.should_be_geq(&2f32));
+        let result = std::panic::catch_unwind(|| 1f32.should_be_ge(&2f32));
         assert!(result.is_err());
     }
 }

@@ -1,5 +1,80 @@
-use backtrace;
+use backtrace::{Backtrace, BacktraceFmt, BacktraceFrame, PrintFmt};
 use std::{any::Any, panic::PanicHookInfo};
+
+pub(crate) fn test_hook(
+    info: &PanicHookInfo<'_>,
+    default_hook: &Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>,
+) {
+    // https://github.com/rust-lang/rust/blob/4af7fa79a0e829c0edcc93434a8c788be8ec58c6/library/std/src/panicking.rs#L262-L263
+    let location = info
+        .location()
+        .expect("panics must provide a location")
+        .to_string();
+    let assertion_message = payload_as_str(info.payload());
+
+    let thread = std::thread::current();
+    let thread_name = thread.name().unwrap_or("<unnamed>");
+
+    let backtrace = Backtrace::new();
+
+    let position = backtrace.frames().iter().position(|frame| {
+        frame.symbols().iter().any(|x| {
+            x.name()
+                .is_some_and(|name| name.to_string().contains("<T as should::extensions::"))
+        })
+    });
+
+    match position {
+        // If 'None' was returned, an assertion via this library did not cause
+        // the panic, so call the original panic hook.
+        None => (default_hook)(info),
+
+        // If 'Some' was returned, this library caused the panic. Omit the stack
+        // frames that were created by this library's functions.
+        Some(mut pos) => {
+            pos += 1;
+            let backtrace_string = format!(
+                "Assertion failed:\n{:?}",
+                BacktraceSubset {
+                    frames: &backtrace.frames()[pos..]
+                }
+            );
+
+            let loc = match between(&backtrace_string, "at ", "\n") {
+                Some(value) => value,
+                None => &location,
+            };
+
+            eprintln!("Assertion failed on thread '{thread_name}' at {loc}:\n{assertion_message}\n\n{backtrace_string}");
+        }
+    };
+}
+
+// Used to create a subset of a backtrace. This is useful when omitting frames
+// that are created by this library.
+struct BacktraceSubset<'a> {
+    frames: &'a [BacktraceFrame],
+}
+
+impl std::fmt::Debug for BacktraceSubset<'_> {
+    // Heavily based on https://docs.rs/backtrace/latest/src/backtrace/capture.rs.html#487-503
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut print_path =
+            move |fmt: &mut std::fmt::Formatter<'_>, path: backtrace::BytesOrWideString<'_>| {
+                let path = path.into_path_buf();
+                std::fmt::Display::fmt(&path.display(), fmt)
+            };
+
+        let mut f = BacktraceFmt::new(f, PrintFmt::Short, &mut print_path);
+
+        f.add_context()?;
+        for frame in self.frames {
+            f.frame().backtrace_frame(frame)?;
+        }
+        f.finish()?;
+        Ok(())
+    }
+}
 
 fn payload_as_str(payload: &dyn Any) -> &str {
     if let Some(&s) = payload.downcast_ref::<&'static str>() {
@@ -11,35 +86,9 @@ fn payload_as_str(payload: &dyn Any) -> &str {
     }
 }
 
-pub(crate) fn test_hook(info: &PanicHookInfo<'_>) {
-    // https://github.com/rust-lang/rust/blob/4af7fa79a0e829c0edcc93434a8c788be8ec58c6/library/std/src/panicking.rs#L262-L263
-    let location = info.location().expect("panics should provide a location");
-    let assertion_message = payload_as_str(info.payload());
-
-    let thread = std::thread::current();
-    let thread_name = thread.name().unwrap_or("<unnamed>");
-
-    let backtrace = backtrace::Backtrace::new();
-
-    let position = backtrace.frames().iter().position(|frame| {
-        frame.symbols().iter().any(|x| {
-            x.name()
-                .is_some_and(|name| name.to_string().contains("<T as should::extensions::"))
-        })
-    });
-
-    let bt = match position {
-        // If 'None' was returned, an assertion via this library did not cause
-        // the panic, so yield a full backtrace.
-        None => format!("{backtrace:?}"),
-        Some(mut pos) => {
-            pos += 1;
-            format!("Assertion failed in frame {pos}:\n{backtrace:?}")
-        }
-    };
-
-    // TODO: fix the 'location', which will currently always return the `assertion.rs` file.
-    eprintln!(
-        "Assertion failed on thread {thread_name} at {location}:\n{assertion_message}\n\n{bt}"
-    );
+fn between<'a>(source: &'a str, start: &'a str, end: &'a str) -> Option<&'a str> {
+    let start_position = source.find(start)? + start.len();
+    let source = &source[start_position..];
+    let end_position = source.find(end)?;
+    return Some(&source[..end_position]);
 }

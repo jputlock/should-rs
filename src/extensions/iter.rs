@@ -211,17 +211,35 @@ mod tests {
 
     #[test]
     fn test_should_contain() {
-        (0..3).should_contain(&2);
+        let vec: Vec<_> = (0..3).collect();
+        vec.iter().should_contain(&&2);
 
-        let result = std::panic::catch_unwind(|| (0..3).should_contain(&10));
+        let result = std::panic::catch_unwind(|| vec.iter().should_contain(&&10));
         assert!(result.is_err());
     }
 
     #[test]
-    fn test_should_not_contain() {
-        (0..3).should_not_contain(&10);
+    fn test_should_contain_ownership() {
+        // This test demonstrates the need for `should_contain` to take a
+        // `&Item` rather than `Item`. In the case that the iterator owns its
+        // generated elements, taking an `Item` would require taking ownership
+        // of the element to check, which seems like poor ergonomics for the
+        // test author.
+        let mut vec = vec!["apple".to_string(), "banana".to_string()];
 
-        let result = std::panic::catch_unwind(|| (0..3).should_not_contain(&2));
+        let coconut = "coconut".to_string();
+
+        vec.push(coconut.clone());
+
+        vec.into_iter().should_contain(&coconut);
+    }
+
+    #[test]
+    fn test_should_not_contain() {
+        let vec: Vec<_> = (0..3).collect();
+        vec.iter().should_not_contain(&&10);
+
+        let result = std::panic::catch_unwind(|| vec.iter().should_not_contain(&&2));
         assert!(result.is_err());
     }
 
