@@ -5,6 +5,12 @@ use crate::message_generator;
 use std::fmt::Debug;
 
 pub trait ShouldBeIntoIterExtension: IntoIterator<Item: Eq + Debug> + Clone + Debug {
+    /// Assert that the generated sequence is the same as the given 'sequence'.
+    fn should_be(self, sequence: impl IntoIterator<Item = Self::Item> + Clone + Debug);
+
+    /// Assert that the generated sequence is not the same as the given 'sequence'.
+    fn should_not_be(self, sequence: impl IntoIterator<Item = Self::Item> + Clone + Debug);
+
     /// Assert that the generated sequence is empty.
     fn should_be_empty(self);
 
@@ -46,6 +52,34 @@ impl<T> ShouldBeIntoIterExtension for T
 where
     T: Iterator<Item: Eq + Debug> + Clone + Debug,
 {
+    fn should_be(self, sequence: impl IntoIterator<Item = Self::Item> + Clone + Debug) {
+        let cloned_self = self.clone();
+        let cloned_other = sequence.clone();
+
+        assert_comparison(
+            self,
+            |iter| iter.zip(sequence).all(|(x, y)| x == y),
+            cloned_self,
+            cloned_other,
+            AssertionContextBuilder::new(),
+            message_generator::expected_vs_actual_message,
+        );
+    }
+
+    fn should_not_be(self, sequence: impl IntoIterator<Item = Self::Item> + Clone + Debug) {
+        let cloned_self = self.clone();
+        let cloned_other = sequence.clone();
+
+        assert_comparison(
+            self,
+            |iter| iter.zip(sequence).any(|(x, y)| x != y),
+            cloned_self,
+            cloned_other,
+            AssertionContextBuilder::new(),
+            message_generator::expected_vs_actual_message,
+        );
+    }
+
     fn should_be_empty(self) {
         let cloned = self.clone();
 

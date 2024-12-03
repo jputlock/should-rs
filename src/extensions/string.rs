@@ -46,9 +46,8 @@ pub trait ShouldBeStringExtension: AsRef<str> + Debug {
     }
 
     /// Assert that this string contains the given 'pattern'.
-    ///
-    /// Eventually would like to swap arg to [`std::str::pattern::Pattern`], see
-    /// https://github.com/rust-lang/rust/issues/27721
+    // Eventually would like to swap arg to [`std::str::pattern::Pattern`], see
+    // https://github.com/rust-lang/rust/issues/27721
     fn should_contain(&self, pattern: &str) {
         assert_comparison(
             self.as_ref(),
@@ -61,9 +60,8 @@ pub trait ShouldBeStringExtension: AsRef<str> + Debug {
     }
 
     /// Assert that this string does not contain the given 'pattern'.
-    ///
-    /// Eventually would like to swap arg to [`std::str::pattern::Pattern`], see
-    /// https://github.com/rust-lang/rust/issues/27721
+    // Eventually would like to swap arg to [`std::str::pattern::Pattern`], see
+    // https://github.com/rust-lang/rust/issues/27721
     fn should_not_contain(&self, pattern: &str) {
         assert_comparison(
             self.as_ref(),

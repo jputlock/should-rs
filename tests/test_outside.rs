@@ -32,3 +32,23 @@ fn example2() {
         Some("None of the elements should be empty".to_string()),
     );
 }
+
+#[test]
+fn basic_test() {
+    let x = 0;
+    let y = 10;
+
+    // Assert whatever you'd like to express:
+    x.should_be_lt(&y);
+    y.should_be_ge(&x);
+
+    let my_str = "Hello, world!";
+    my_str.should_contain("world");
+
+    let my_vec = vec![1, 3, 2];
+    my_vec.iter().should_be_size(my_vec.len());
+    my_vec.iter().should_contain(&&3);
+
+    // This check will fail!
+    my_vec.iter().should_be(&[1, 2, 3]);
+}
