@@ -39,7 +39,7 @@ The failure of the above test yields the following output:
 ```
 ---- basic_test stdout ----
 Assertion failed on thread 'basic_test' at /project-path/tests/test_outside.rs:53:5:
-Placeholder code should be [1, 2, 3] but was Iter([1, 3, 2])
+'my_vec.iter()' should be [1, 2, 3] but was Iter([1, 3, 2])
 
 Assertion failed:
    0: test_outside::basic_test
