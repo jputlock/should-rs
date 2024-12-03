@@ -9,3 +9,4 @@ pub use extensions::base::ShouldSatisfyExtension;
 pub use extensions::eq::ShouldBeEqExtension;
 pub use extensions::iter::ShouldBeIntoIterExtension;
 pub use extensions::partial_ord::ShouldBePartialOrdExtension;
+pub use extensions::string::ShouldBeStringExtension;

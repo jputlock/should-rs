@@ -5,14 +5,6 @@ use crate::message_generator;
 use std::fmt::Debug;
 
 pub trait ShouldBeIntoIterExtension: IntoIterator<Item: Eq + Debug> + Clone + Debug {
-    /// Assert that the generated sequence is a contiguous ordered slice of the
-    /// given 'supersequence'.
-    fn should_be_subsequence_of(self, supersequence: impl IntoIterator<Item = Self::Item> + Debug);
-
-    /// Assert that the generated sequence consists of the elements in the given
-    /// 'superset', ignoring order.
-    fn should_be_subset_of(self, superset: impl IntoIterator<Item = Self::Item> + Debug);
-
     /// Assert that the generated sequence is empty.
     fn should_be_empty(self);
 
@@ -54,17 +46,6 @@ impl<T> ShouldBeIntoIterExtension for T
 where
     T: Iterator<Item: Eq + Debug> + Clone + Debug,
 {
-    fn should_be_subsequence_of(
-        self,
-        _supersequence: impl IntoIterator<Item = Self::Item> + Debug,
-    ) {
-        todo!()
-    }
-
-    fn should_be_subset_of(self, _superset: impl IntoIterator<Item = Self::Item> + Debug) {
-        todo!()
-    }
-
     fn should_be_empty(self) {
         let cloned = self.clone();
 

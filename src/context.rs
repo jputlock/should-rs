@@ -5,7 +5,6 @@ pub struct AssertionContext<T: Debug> {
     pub verb: String,
     pub actual_mapper: Box<dyn FnOnce(T) -> String>,
     pub custom_message: Option<String>,
-    // pub tolerance: Option<f64>,
 }
 
 impl<T: Debug> Default for AssertionContext<T> {
@@ -15,7 +14,6 @@ impl<T: Debug> Default for AssertionContext<T> {
             asserted_expression: "Placeholder code".to_string(),
             verb: "should be".to_string(),
             actual_mapper: Box::new(|x| format!(" {x:?}")),
-            // tolerance: None,
             custom_message: None,
         }
     }
@@ -47,11 +45,6 @@ impl<T: Debug> AssertionContextBuilder<T> {
         self.context.actual_mapper = value;
         self
     }
-
-    // pub fn tolerance(mut self, value: Option<f64>) -> Self {
-    //     self.context.tolerance = value;
-    //     self
-    // }
 
     pub fn custom_message(mut self, custom_message: Option<String>) -> Self {
         self.context.custom_message = custom_message;
