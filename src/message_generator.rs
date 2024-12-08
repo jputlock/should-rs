@@ -16,8 +16,8 @@ pub(crate) fn expected_vs_actual_message<T: Debug, O: Debug>(
     };
 
     format!(
-        "{} {} {expected:?} but was{mapped_actual}{custom_message}",
-        context.asserted_expression, context.verb,
+        " {} {expected:?} but was{mapped_actual}{custom_message}",
+        context.verb
     )
 }
 
@@ -33,8 +33,5 @@ pub(crate) fn failed_condition_message<T: Debug>(
         "".to_string()
     };
 
-    format!(
-        "{} {} but was{mapped_actual}{custom_message}",
-        context.asserted_expression, context.verb,
-    )
+    format!(" {} but was{mapped_actual}{custom_message}", context.verb)
 }

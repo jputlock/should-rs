@@ -1,15 +1,15 @@
 use backtrace::{Backtrace, BacktraceFmt, BacktraceFrame, PrintFmt};
 use std::{any::Any, panic::PanicHookInfo};
 
+use crate::code_grabber;
+
 pub(crate) fn test_hook(
     info: &PanicHookInfo<'_>,
     default_hook: &Box<dyn Fn(&PanicHookInfo<'_>) + Sync + Send + 'static>,
 ) {
     // https://github.com/rust-lang/rust/blob/4af7fa79a0e829c0edcc93434a8c788be8ec58c6/library/std/src/panicking.rs#L262-L263
-    let location = info
-        .location()
-        .expect("panics must provide a location")
-        .to_string();
+
+    let location = info.location().expect("panics must provide a location");
     let assertion_message = payload_as_str(info.payload());
 
     let thread = std::thread::current();
@@ -17,35 +17,47 @@ pub(crate) fn test_hook(
 
     let backtrace = Backtrace::new();
 
-    let position = backtrace.frames().iter().position(|frame| {
+    let frame_number = backtrace.frames().iter().position(|frame| {
         frame.symbols().iter().any(|x| {
             x.name()
                 .is_some_and(|name| name.to_string().contains("<T as should::extensions::"))
         })
     });
 
-    match position {
+    match frame_number {
         // If 'None' was returned, an assertion via this library did not cause
         // the panic, so call the original panic hook.
         None => (default_hook)(info),
 
         // If 'Some' was returned, this library caused the panic. Omit the stack
         // frames that were created by this library's functions.
-        Some(mut pos) => {
-            pos += 1;
+        Some(mut frame_num) => {
+            frame_num += 1;
             let backtrace_string = format!(
                 "Assertion failed:\n{:?}",
                 BacktraceSubset {
-                    frames: &backtrace.frames()[pos..]
+                    frames: &backtrace.frames()[frame_num..]
                 }
             );
 
-            let loc = match between(&backtrace_string, "at ", "\n") {
+            let location_string = match between(&backtrace_string, "at ", "\n") {
                 Some(value) => value,
-                None => &location,
+                None => &location.to_string(),
             };
 
-            eprintln!("Assertion failed on thread '{thread_name}' at {loc}:\n{assertion_message}\n\n{backtrace_string}");
+            let assertion_fn = {
+                let backing = format!(
+                    "{:?}",
+                    BacktraceSubset {
+                        frames: &backtrace.frames()[frame_num - 1..frame_num]
+                    }
+                );
+                let first_line = backing.split("\n").next().unwrap();
+                code_grabber::get_assertion_function(first_line)
+            };
+            let code_snippet = code_grabber::get_code_snippet(location_string, &assertion_fn);
+
+            eprintln!("Assertion failed on thread '{thread_name}' at {location_string}:\n'{code_snippet}'{assertion_message}\n\n{backtrace_string}");
         }
     };
 }
